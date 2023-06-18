@@ -86,7 +86,7 @@ def extract_filter_responses(image):
     return imgs
 
 
-def get_visual_words(image, dictionary, args):
+def get_visual_words(image, dictionary):
     '''
     Compute visual words mapping for the given image using the dictionary of visual words.
 
@@ -100,11 +100,7 @@ def get_visual_words(image, dictionary, args):
     H, W = filter_response.shape[0], filter_response.shape[1]
     filter_response = filter_response.reshape(H * W, -1)
     dists = scipy.spatial.distance.cdist(filter_response, dictionary)
-    # wordmap = np.argmin(dists, axis=1).reshape(H, W)
-    knn = args.nearest_neighbor_num
-    wordmap = np.argpartition(dists, axis=1)[:, :knn].reshape(H, W, knn)
-    if knn == 1:
-        wordmap = wordmap[:, :, 0]
+    wordmap = np.argmin(dists, axis=1).reshape(H, W)
     return wordmap
 
 
@@ -154,7 +150,7 @@ def compute_dictionary(args, num_workers=2):
     '''
     K = args.K
     alpha = args.alpha
-    feature_num = args.feature_num
+    feature_dim = args.feature_dim
     
 
     if os.path.exists("dictionary.npy"):
@@ -181,7 +177,7 @@ def compute_dictionary(args, num_workers=2):
         filter_responses.append(
             np.load(os.path.join(image_dicts_path, "{}.npy".format(i))))
     # filter_responses = np.array(filter_responses).reshape(-1, 60)
-    filter_responses = np.array(filter_responses).reshape(-1, feature_num)
+    filter_responses = np.array(filter_responses).reshape(-1, feature_dim)
     print("Number of Points: {} | Dimensions: {}".format(
         filter_responses.shape[0], filter_responses.shape[1]))
     print("Running K Means...")

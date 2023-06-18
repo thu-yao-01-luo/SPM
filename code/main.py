@@ -21,8 +21,9 @@ class Config:
     project: str = "SPM"
     nearest_neighbor_num: int = 5
 
+config=load_config(Config)
 if __name__ == '__main__':
-    config = load_config(Config)
+    # config = load_config(Config)
     job_id = f"K{config.K}-alpha{config.alpha}-fd{config.feature_dim}-layer-num{config.layer_num}"
     logger.configure(
         "logs",
@@ -48,10 +49,10 @@ if __name__ == '__main__':
     # filename = "wordmap2.jpg"
     # util.save_wordmap(wordmap, filename)
     visual_recog.build_recognition_system(args=config, num_workers=num_cores // 2)
-    visual_recog.evaluate_recognition_system(num_workers=num_cores // 2)
+    visual_recog.evaluate_recognition_system(args=config, num_workers=num_cores // 2)
 
     conf, accuracy = visual_recog.evaluate_recognition_system(
-        num_workers=num_cores)
+        args=config, num_workers=num_cores)
     print(conf)
     print(np.diag(conf).sum()/conf.sum())
     logger.logkv("accuracy", accuracy)

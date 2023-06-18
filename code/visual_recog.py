@@ -7,7 +7,7 @@ import math
 import visual_words
 import skimage.io
 import multiprocessing
-from tqdm import tqdm
+# from tqdm import tqdm
 
 def build_recognition_system(args, num_workers = 2):
     '''
@@ -30,19 +30,19 @@ def build_recognition_system(args, num_workers = 2):
     labels = train_data['labels']
 
     args_list = []
-    for i, (file, label) in enumerate(tqdm(zip(files, labels))):
+    for i, (file, label) in enumerate((zip(files, labels))):
         path_img = os.path.join("../data/", file)
-        args_list.append((i, path_img, dictionary, layer_num, visual_words.K))
+        args_list.append((i, path_img, dictionary, layer_num, args.K))
 
     pool = multiprocessing.Pool()
-    features = np.array(pool.map(call_get_image_feature, args_list)).reshape(-1, visual_words.K * (4 ** layer_num - 1) // 3)
+    features = np.array(pool.map(call_get_image_feature, args_list)).reshape(-1, args.K * (4 ** layer_num - 1) // 3)
     print("-" * 50)
     np.savez("trained_system", dictionary = dictionary, features = features, labels = labels, SPM_layer_num = layer_num)
 
     print("Recognition System Build Complete!")
 
 
-def evaluate_recognition_system(num_workers = 2):
+def evaluate_recognition_system(args, num_workers = 2):
     '''
     Evaluates the recognition system for all test images and returns the confusion matrix.
 
@@ -67,8 +67,8 @@ def evaluate_recognition_system(num_workers = 2):
     test_labels = test_data['labels']
 
     args_list = []
-    for i, (image_path, label) in enumerate(tqdm(zip(test_images, test_labels))):
-        args_list.append((i, os.path.join("../data", image_path), label, dictionary, trained_features, trained_labels, SPM_layer_num, visual_words.K))
+    for i, (image_path, label) in enumerate((zip(test_images, test_labels))):
+        args_list.append((i, os.path.join("../data", image_path), label, dictionary, trained_features, trained_labels, SPM_layer_num, args.K))
     pool = multiprocessing.Pool()
     result = pool.map(evaluate_image, args_list)
     
@@ -91,7 +91,7 @@ def evaluate_image(args):
     feature = get_feature_from_wordmap_SPM(wordmap, num_layers, K)
     similarity = distance_to_set(trained_features, feature)
     pred = trained_labels[np.argmax(similarity)]
-    # print("Image {} Finished!".format(i))
+    print("Image {} Finished!".format(i))
     return {"pred":pred, "label":label}
 
 
@@ -99,7 +99,7 @@ def evaluate_image(args):
 def call_get_image_feature(args):
     i, file_path, dictionary, layer_num, K = args
     feature = get_image_feature(file_path, dictionary, layer_num, K)
-    # print("Image {} Finished!".format(i))
+    print("Image {} Finished!".format(i))
     return feature
 
 
