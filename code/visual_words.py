@@ -23,9 +23,8 @@ def extract_filter_responses(image):
     [output]
     * filter_responses: numpy.ndarray of shape (H,W,3F)
     '''
-
     if len(image.shape) == 2:
-        image = np.tile(image[:, newaxis], (1, 1, 3))
+        image = np.tile(image[:, np.newaxis], (1, 1, 3))
 
     if image.shape[2] == 4:
         image = image[:, :, 0:3]
@@ -51,6 +50,19 @@ def extract_filter_responses(image):
             img = scipy.ndimage.gaussian_filter(
                 image[:, :, c], sigma=scales[i], order=[1, 0])
             imgs.append(img)
+    # for c in range(3):
+    #     img = scipy.ndimage.sobel(image[:, :, c])
+    #     imgs.append(img)
+    # for c in range(3):
+    #     img = scipy.ndimage.sobel(image[:, :, c], axis=1)
+    #     imgs.append(img)
+    # for c in range(3):
+    #     img = scipy.ndimage.prewitt(image[:, :, c])
+    #     imgs.append(img)
+    # for c in range(3):
+    #     img = scipy.ndimage.prewitt(image[:, :, c], axis=1)
+    #     imgs.append(img)
+           
     imgs = np.stack(imgs, axis=2)
 
     # for i in range(len(scales)):
@@ -74,7 +86,7 @@ def extract_filter_responses(image):
     return imgs
 
 
-def get_visual_words(image, dictionary):
+def get_visual_words(image, dictionary, args):
     '''
     Compute visual words mapping for the given image using the dictionary of visual words.
 
@@ -88,7 +100,11 @@ def get_visual_words(image, dictionary):
     H, W = filter_response.shape[0], filter_response.shape[1]
     filter_response = filter_response.reshape(H * W, -1)
     dists = scipy.spatial.distance.cdist(filter_response, dictionary)
-    wordmap = np.argmin(dists, axis=1).reshape(H, W)
+    # wordmap = np.argmin(dists, axis=1).reshape(H, W)
+    knn = args.nearest_neighbor_num
+    wordmap = np.argpartition(dists, axis=1)[:, :knn].reshape(H, W, knn)
+    if knn == 1:
+        wordmap = wordmap[:, :, 0]
     return wordmap
 
 
@@ -126,7 +142,7 @@ def compute_dictionary_one_image(args):
     return
 
 
-def compute_dictionary(num_workers=2, args):
+def compute_dictionary(args, num_workers=2):
     '''
     Creates the dictionary of visual words by clustering using k-means.
 

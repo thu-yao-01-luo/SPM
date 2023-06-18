@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
 import multiprocessing
 
@@ -20,7 +20,7 @@ def display_filter_responses(response_maps):
 
     fig = plt.figure(1)
 
-    for i in range(20):
+    for i in range(24):
         plt.subplot(5,4,i+1)
         resp = response_maps[:,:,i*3:i*3+3]
         resp_min = resp.min(axis=(0,1),keepdims=True)
@@ -31,11 +31,11 @@ def display_filter_responses(response_maps):
 
     plt.subplots_adjust(left=0.05,right=0.95,top=0.95,bottom=0.05,wspace=0.05,hspace=0.05)
     # plt.show()
-    plt.savefig("filter_responses.png")
+    plt.savefig("new_filter_responses.png")
 
 def save_wordmap(wordmap, filename):
     fig = plt.figure(2)
     plt.axis('equal')
     plt.axis('off')
     plt.imshow(wordmap)
-    plt.savefig(filename, pad_inches=0)
+    plt.savefig("new_"+filename, pad_inches=0)
