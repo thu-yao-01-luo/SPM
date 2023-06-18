@@ -14,7 +14,7 @@ image_dicts_path = "./image_dicts/"
 # K = 200
 
 
-def extract_filter_responses(image):
+def extract_filter_responses(image, prewitt=False, sobel=False):
     '''
     Extracts the filter responses for the given image.
 
@@ -50,18 +50,20 @@ def extract_filter_responses(image):
             img = scipy.ndimage.gaussian_filter(
                 image[:, :, c], sigma=scales[i], order=[1, 0])
             imgs.append(img)
-    # for c in range(3):
-    #     img = scipy.ndimage.sobel(image[:, :, c])
-    #     imgs.append(img)
-    # for c in range(3):
-    #     img = scipy.ndimage.sobel(image[:, :, c], axis=1)
-    #     imgs.append(img)
-    # for c in range(3):
-    #     img = scipy.ndimage.prewitt(image[:, :, c])
-    #     imgs.append(img)
-    # for c in range(3):
-    #     img = scipy.ndimage.prewitt(image[:, :, c], axis=1)
-    #     imgs.append(img)
+    if sobel:
+        for c in range(3):
+            img = scipy.ndimage.sobel(image[:, :, c])
+            imgs.append(img)
+        for c in range(3):
+            img = scipy.ndimage.sobel(image[:, :, c], axis=1)
+            imgs.append(img)
+    if prewitt:
+        for c in range(3):
+            img = scipy.ndimage.prewitt(image[:, :, c])
+            imgs.append(img)
+        for c in range(3):
+            img = scipy.ndimage.prewitt(image[:, :, c], axis=1)
+            imgs.append(img)
            
     imgs = np.stack(imgs, axis=2)
 
@@ -86,7 +88,7 @@ def extract_filter_responses(image):
     return imgs
 
 
-def get_visual_words(image, dictionary):
+def get_visual_words(image, dictionary, knn=1, prewitt=False, sobel=False):
     '''
     Compute visual words mapping for the given image using the dictionary of visual words.
 
@@ -96,11 +98,14 @@ def get_visual_words(image, dictionary):
     [output]
     * wordmap: numpy.ndarray of shape (H,W)
     '''
-    filter_response = extract_filter_responses(image)
+    filter_response = extract_filter_responses(image, prewitt=prewitt, sobel=sobel)
     H, W = filter_response.shape[0], filter_response.shape[1]
     filter_response = filter_response.reshape(H * W, -1)
     dists = scipy.spatial.distance.cdist(filter_response, dictionary)
-    wordmap = np.argmin(dists, axis=1).reshape(H, W)
+    if knn == 1:
+        wordmap = np.argmin(dists, axis=1).reshape(H, W)
+    else:
+        wordmap = np.argpartition(dists, knn, axis=1)[:, 0:knn].reshape(H, W, knn)
     return wordmap
 
 
@@ -118,17 +123,17 @@ def compute_dictionary_one_image(args):
     [saved]
     * sampled_response: numpy.ndarray of shape (alpha,3F)
     '''
-    i, alpha, image_path = args
+    i, alpha, image_path, prewitt, sobel = args
 
     out_path = os.path.join(image_dicts_path, "{}.npy".format(i))
 
-    if os.path.exists(out_path):
-        print("{}.npy Already Exists!".format(i))
-        return
+    # if os.path.exists(out_path):
+    #     print("{}.npy Already Exists!".format(i))
+    #     return
 
     image = skimage.io.imread(image_path)
     image = image.astype('float') / 255
-    filter_response = extract_filter_responses(image)
+    filter_response = extract_filter_responses(image, prewitt=prewitt, sobel=sobel)
     random_sample = np.random.choice(
         filter_response.shape[0] * filter_response.shape[1], alpha)
     sampled_response = filter_response.reshape(
@@ -138,7 +143,7 @@ def compute_dictionary_one_image(args):
     return
 
 
-def compute_dictionary(args, num_workers=2):
+def compute_dictionary(config, num_workers=2):
     '''
     Creates the dictionary of visual words by clustering using k-means.
 
@@ -148,14 +153,13 @@ def compute_dictionary(args, num_workers=2):
     [saved]
     * dictionary: numpy.ndarray of shape (K,3F)
     '''
-    K = args.K
-    alpha = args.alpha
-    feature_dim = args.feature_dim
-    
+    K = config.K
+    alpha = config.alpha
+    feature_dim = config.feature_dim
 
-    if os.path.exists("dictionary.npy"):
-        print("Dictionary Already Exists!")
-        return
+    # if os.path.exists("dictionary.npy"):
+    #     print("Dictionary Already Exists!")
+    #     return
 
     train_data = np.load("../data/train_data.npz")
     files = train_data['files']
@@ -167,7 +171,7 @@ def compute_dictionary(args, num_workers=2):
 
     args_list = []
     for i, (file, label) in enumerate(zip(files, labels)):
-        args_list.append((i, alpha, os.path.join("../data", file)))
+        args_list.append((i, alpha, os.path.join("../data", file), config.prewitt, config.sobel))
 
     pool.map(compute_dictionary_one_image, args_list)
     print("-" * 50)
@@ -182,7 +186,7 @@ def compute_dictionary(args, num_workers=2):
         filter_responses.shape[0], filter_responses.shape[1]))
     print("Running K Means...")
     kmeans = sklearn.cluster.KMeans(
-        n_clusters=K, n_jobs=4).fit(filter_responses)
+        n_clusters=K).fit(filter_responses)
     dictionary = kmeans.cluster_centers_
     print("Finished!")
     np.save("dictionary.npy", dictionary)

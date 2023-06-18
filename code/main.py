@@ -19,12 +19,16 @@ class Config:
     layer_num: int = 3
     format: list = field(default_factory=lambda: ["stdout", "csv", "log", "json"])
     project: str = "SPM"
-    nearest_neighbor_num: int = 5
+    nearest_neighbor_num: int = 1
+    distance: str = "intersect" # euclidean, intersect, chi2, correl
+    sobel: bool = False
+    prewitt: bool = False
 
-config=load_config(Config)
+# config=load_config(Config)
 if __name__ == '__main__':
-    # config = load_config(Config)
-    job_id = f"K{config.K}-alpha{config.alpha}-fd{config.feature_dim}-layer-num{config.layer_num}"
+    config = load_config(Config)
+    assert config.feature_dim == 60 + config.sobel * 6 + config.prewitt * 6
+    job_id = f"K{config.K}-alpha{config.alpha}-fd{config.feature_dim}-layer-num{config.layer_num}-nn{config.nearest_neighbor_num}-distance:{config.distance}-sobel:{config.sobel}-prewitt:{config.prewitt}"
     logger.configure(
         "logs",
         format_strs=config.format,
@@ -42,17 +46,17 @@ if __name__ == '__main__':
     # filter_responses = visual_words.extract_filter_responses(image)
     # util.display_filter_responses(filter_responses)
 
-    visual_words.compute_dictionary(num_workers=num_cores, args=config)
+    visual_words.compute_dictionary(num_workers=num_cores, config=config)
 
     dictionary = np.load('dictionary.npy')
     # wordmap = visual_words.get_visual_words(image, dictionary)
     # filename = "wordmap2.jpg"
     # util.save_wordmap(wordmap, filename)
-    visual_recog.build_recognition_system(args=config, num_workers=num_cores // 2)
-    visual_recog.evaluate_recognition_system(args=config, num_workers=num_cores // 2)
+    visual_recog.build_recognition_system(config=config, num_workers=num_cores // 2)
+    visual_recog.evaluate_recognition_system(config=config, num_workers=num_cores // 2)
 
     conf, accuracy = visual_recog.evaluate_recognition_system(
-        args=config, num_workers=num_cores)
+        config=config, num_workers=num_cores)
     print(conf)
     print(np.diag(conf).sum()/conf.sum())
     logger.logkv("accuracy", accuracy)
