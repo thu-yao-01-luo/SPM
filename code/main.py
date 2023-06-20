@@ -55,10 +55,15 @@ if __name__ == '__main__':
     visual_recog.build_recognition_system(config=config, num_workers=num_cores // 2)
     visual_recog.evaluate_recognition_system(config=config, num_workers=num_cores // 2)
 
-    conf, accuracy = visual_recog.evaluate_recognition_system(
+    conf, accuracy, error_list = visual_recog.evaluate_recognition_system(
         config=config, num_workers=num_cores)
     print(conf)
     print(np.diag(conf).sum()/conf.sum())
+    file = open(job_id+"-error.txt", "w")
+    for item in error_list:
+        file_, pred, label = item
+        file.write(f"{file_} prediction {pred} label {label}\n")
+    file.close()
     logger.logkv("accuracy", accuracy)
     np.save(job_id + "_confusion_matrix.npy", conf)
     #visual_recog.get_feature_from_wordmap(wordmap, visual_words.K)

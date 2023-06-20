@@ -73,15 +73,18 @@ def evaluate_recognition_system(config, num_workers = 2):
     result = pool.map(evaluate_image, args_list)
     
     conf = np.zeros((8, 8))
-
-    for item in result:
+    error_list = []
+    # for item in result:
+    for ind, item in enumerate(result):
         pred, label = item['pred'], item['label']
         conf[label][pred] += 1.0
-    np.save("conf.npy", conf)
+        if pred != label:
+            error_list.append((args_list[ind][1], pred, label))
+    # np.save("conf.npy", conf)
     print(conf)
     acc = np.trace(conf) / np.sum(conf)
     print("Accuracy: {}".format(acc))
-    return conf, acc
+    return conf, acc, error_list
 
 def evaluate_image(args):
     i, image_path, label, dictionary, trained_features, trained_labels, num_layers, K, knn, dis, prewitt, sobel= args
