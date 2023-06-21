@@ -13,16 +13,16 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Config:
-    K: int = 200
-    alpha: int = 300
-    feature_dim: int = 60
-    layer_num: int = 3
+    K: int = 300
+    alpha: int = 400
+    feature_dim: int = 72
+    layer_num: int = 5
     format: list = field(default_factory=lambda: ["stdout", "csv", "log", "json"])
     project: str = "SPM"
-    nearest_neighbor_num: int = 1
+    nearest_neighbor_num: int = 5
     distance: str = "intersect" # euclidean, intersect, chi2, correl
-    sobel: bool = False
-    prewitt: bool = False
+    sobel: bool = True
+    prewitt: bool = True
 
 # config=load_config(Config)
 if __name__ == '__main__':
